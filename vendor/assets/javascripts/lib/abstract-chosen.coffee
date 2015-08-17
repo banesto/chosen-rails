@@ -32,6 +32,11 @@ class AbstractChosen
     @display_selected_options = if @options.display_selected_options? then @options.display_selected_options else true
     @display_disabled_options = if @options.display_disabled_options? then @options.display_disabled_options else true
     @include_group_label_in_selected = @options.include_group_label_in_selected || false
+    @max_shown_results = @options.max_shown_results || Number.POSITIVE_INFINITY
+    @option_images = @options.option_images || false
+    @native_placeholder = @options.native_placeholder || false
+
+    return
 
   set_default_text: ->
     if @form_field.getAttribute("data-placeholder")
@@ -65,11 +70,16 @@ class AbstractChosen
 
   results_option_build: (options) ->
     content = ''
+    shown_results = 0
     for data in @results_data
+      data_content = ''
       if data.group
-        content += this.result_add_group data
+        data_content = this.result_add_group data
       else
-        content += this.result_add_option data
+        data_content = this.result_add_option data
+      if data_content != ''
+        shown_results++
+        content += data_content
 
       # this select logic pins on an awkward flag
       # we can make it better
@@ -77,7 +87,11 @@ class AbstractChosen
         if data.selected and @is_multiple
           this.choice_build data
         else if data.selected and not @is_multiple
+          this.single_set_selected_image(data.img_src) if @option_images
           this.single_set_selected_text(this.choice_label(data))
+
+      if shown_results >= @max_shown_results
+        break
 
     content
 
@@ -95,6 +109,8 @@ class AbstractChosen
     option_el = document.createElement("li")
     option_el.className = classes.join(" ")
     option_el.style.cssText = option.style
+    if @option_images && option.img_src
+      option_el.style.cssText += "background-image: url(#{option.img_src});"
     option_el.setAttribute("data-option-array-index", option.array_index)
     option_el.innerHTML = option.search_text
     option_el.title = option.title if option.title
